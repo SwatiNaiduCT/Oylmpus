@@ -1,4 +1,5 @@
-﻿using System;
+﻿
+using System;
 using System.Collections.Concurrent;
 using System.Globalization;
 using System.IO;
@@ -7,9 +8,10 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace ThreadWriter
-{ /// <summary>
-  /// Strongly typed class for capturing per-thread failures (record replaced).
-  /// </summary>
+{
+    /// <summary>
+    /// Strongly typed class for capturing per-thread failures (record replaced).
+    /// </summary>
     public sealed class ThreadFailure
     {
         public int ThreadId { get; private set; }
@@ -68,8 +70,11 @@ namespace ThreadWriter
         /// <summary>Opens the file for append. Must be called after Initialize.</summary>
         void OpenAppend();
 
-        /// <summary>Writes a single line with synchronized file access.</summary>
-        void AppendLine(int lineCount, int threadId, string timestamp);
+        /// <summary>
+        /// Writes a single line with synchronized file access.
+        /// NOTE: CHANGED — line increment happens inside the sink to guarantee strict 1..100 ordering.
+        /// </summary>
+        void AppendLine(int threadId, string timestamp);
     }
 
     /// <summary>
@@ -79,11 +84,17 @@ namespace ThreadWriter
     {
         private readonly string _filePath;
         private readonly object _fileLock = new object();
+
+        // CHANGED: Hold the LineCounter here so we can increment inside the critical section.
+        private readonly LineCounter _counter;
+
         private StreamWriter _writer;
 
-        public SafeFileSink(string filePath)
+        // CHANGED: Accept LineCounter in constructor.
+        public SafeFileSink(string filePath, LineCounter counter)
         {
-            _filePath = filePath;
+            _filePath = filePath ?? throw new ArgumentNullException(nameof(filePath));
+            _counter = counter ?? throw new ArgumentNullException(nameof(counter));
         }
 
         public void Initialize()
@@ -112,14 +123,16 @@ namespace ThreadWriter
             _writer.AutoFlush = true;
         }
 
-        public void AppendLine(int lineCount, int threadId, string timestamp)
+        public void AppendLine(int threadId, string timestamp)
         {
             if (_writer == null)
                 throw new InvalidOperationException("File sink not opened for append. Call OpenAppend() after Initialize().");
 
+            // CHANGED: Do increment + write inside the same lock to guarantee strict ordering.
             lock (_fileLock)
             {
-                _writer.WriteLine(string.Format("{0}, {1}, {2}", lineCount, threadId, timestamp));
+                int nextLine = _counter.Next();
+                _writer.WriteLine(string.Format("{0}, {1}, {2}", nextLine, threadId, timestamp));
             }
         }
 
@@ -166,8 +179,8 @@ namespace ThreadWriter
             {
                 for (int i = 0; i < _writes; i++)
                 {
-                    int nextLine = _counter.Next(); // atomic increment ensures global ordering
-                    _sink.AppendLine(nextLine, tid, Timestamp.Now());
+                    // CHANGED: Do not get nextLine here; sink will handle increment + write atomically.
+                    _sink.AppendLine(tid, Timestamp.Now());
                 }
             }
             catch (Exception ex)
@@ -179,8 +192,9 @@ namespace ThreadWriter
 
     public static class Program
     {
-        private const string OutputPath = @"C:\junk\out.txt"; //for local as i am not having the docker 
-        //private const string OutputPath = "/log/out.txt";
+        private const string OutputPath = @"C:\log\out.txt"; // for local run
+        // private const string OutputPath = "/log/out.txt"; // for Docker/Linux container
+
         private const int ThreadCount = 10;
         private const int WritesPerThread = 10;
 
@@ -218,7 +232,8 @@ namespace ThreadWriter
 
             try
             {
-                using (IFileSink sink = new SafeFileSink(OutputPath))
+                // CHANGED: Pass the counter into the sink so it can increment within its lock.
+                using (IFileSink sink = new SafeFileSink(OutputPath, counter))
                 {
                     // Initialize file with first line "0, 0, timestamp"
                     sink.Initialize();
