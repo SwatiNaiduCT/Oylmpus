@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Text;
 
 namespace ThreadDemo
 {
@@ -37,15 +38,17 @@ namespace ThreadDemo
             {
                 // Ensure directory exists and initialize file with first line
                 Directory.CreateDirectory(Path.GetDirectoryName(writePath)!);
-                using (var initWriter = new StreamWriter(writePath, false))
-                {
-                    initWriter.WriteLine($"0, 0, {DateTime.Now:HH:mm:ss.fff}");
-                }
+
+                //Initialize file with first line.
+                Initializefile();
+
+                using var fs = new FileStream(writePath, FileMode.Append, FileAccess.Write, FileShare.Read);
+                using var sharedWriter = new StreamWriter(fs, Encoding.UTF8) { AutoFlush = false };
 
                 var tasks = new List<Task>(_taskCount);
                 for (int i = 0; i < _taskCount; i++)
                 {
-                    tasks.Add(Task.Run(() => DoWork(writePath)));
+                    tasks.Add(Task.Run(() => DoWork(sharedWriter)));
                 }
 
                 await Task.WhenAll(tasks);
@@ -62,27 +65,43 @@ namespace ThreadDemo
             {
                 Console.Error.WriteLine("Unexpected error: " + ex);
             }
+            finally
+            {
+
+                _barrier.Dispose();
+            }
         }
 
-        private void DoWork(string writePath)
+        private void DoWork(StreamWriter sharedWriter)
         {
             int threadId = Environment.CurrentManagedThreadId;
-
-            // Wait until all tasks reach the barrier
-            _barrier.SignalAndWait();
-
-            // Critical section (counter + write paired atomically)
-            for (int w = 0; w < _writesPerTask; w++)
+            try
             {
-                lock (_lockObj)
+                // Wait until all tasks reach the barrier
+                _barrier.SignalAndWait();
+                // Critical section (counter + write paired atomically)
+                for (int w = 0; w < _writesPerTask; w++)
                 {
-                    int lineNo = ++_lineCounter;
-                    using (var sharedWriter = new StreamWriter(writePath, append: true))
+                    lock (_lockObj)
                     {
-                        sharedWriter.WriteLine($"{lineNo}, {threadId}, {DateTime.Now:HH:mm:ss.fff}");
+                        int lineNo = ++_lineCounter;
+                        sharedWriter.WriteLine($"{lineNo}, {threadId}, {DateTime.UtcNow.ToString("HH:mm:ss.fff")}");
+
                     }
                 }
             }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"Exception Occured at line No: {_lineCounter} on Thread {threadId}: {ex.Message}");
+            }
+
+        }
+
+        public static void Initializefile()
+        {
+            using var fs = new FileStream(GetWritePath(), FileMode.Create, FileAccess.Write, FileShare.Read);
+            using var initwriter = new StreamWriter(fs, Encoding.UTF8);
+            initwriter.WriteLine($"0, 0, {DateTime.UtcNow.ToString("HH:mm:ss.fff")}");
         }
 
         // Use a user-writable location to avoid UnauthorizedAccessException
@@ -95,10 +114,9 @@ namespace ThreadDemo
             }
             else
             {
-                appDir = "/olympus/out.txt";
+                appDir = "/log/out.txt";
 		        return appDir;
             }
-
             return Path.Combine(appDir, "out.txt");
         }
 
