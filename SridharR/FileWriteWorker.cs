@@ -7,27 +7,22 @@ using System.Text;
 
 namespace ThreadDemo
 {
-    public sealed class FileWriteWorker 
+    public sealed class FileWriteWorker
     {
         private readonly int _taskCount;
         private readonly int _writesPerTask;
-
         private readonly object _lockObj = new object();
         private int _lineCounter = 0;
-
         private Barrier _barrier;
-        
         //Constructor to Assign Required information from Main
         public FileWriteWorker(int taskCount, int writesPerTask)
         {
             if (taskCount <= 0) throw new ArgumentOutOfRangeException(nameof(taskCount));
             if (writesPerTask <= 0) throw new ArgumentOutOfRangeException(nameof(writesPerTask));
-
             _taskCount = taskCount;
             _writesPerTask = writesPerTask;
             _barrier = new Barrier(_taskCount);
         }
-
         //Method That Handles Task Creations and Running the Task
         public async Task RunAsync()
         {
@@ -38,24 +33,18 @@ namespace ThreadDemo
             {
                 // Ensure directory exists and initialize file with first line
                 Directory.CreateDirectory(Path.GetDirectoryName(writePath)!);
-
                 //Initialize file with first line.
                 Initializefile();
-
                 using var fs = new FileStream(writePath, FileMode.Append, FileAccess.Write, FileShare.Read);
                 using var sharedWriter = new StreamWriter(fs, Encoding.UTF8) { AutoFlush = false };
-
                 var tasks = new List<Task>(_taskCount);
                 for (int i = 0; i < _taskCount; i++)
                 {
                     tasks.Add(Task.Run(() => DoWork(sharedWriter)));
                 }
-
                 await Task.WhenAll(tasks);
-
                 Console.WriteLine($"All tasks completed. Total lines: {_lineCounter} (expected {_taskCount * _writesPerTask}).");
             }
-
             catch (UnauthorizedAccessException ex)
             {
                 Console.Error.WriteLine("UnauthorizedAccessException: " + ex.Message);
@@ -67,17 +56,14 @@ namespace ThreadDemo
             }
             finally
             {
-
                 _barrier.Dispose();
             }
         }
-
         private void DoWork(StreamWriter sharedWriter)
         {
             int threadId = Environment.CurrentManagedThreadId;
             try
-            {
-                // Wait until all tasks reach the barrier
+            {   // Wait until all tasks reach the barrier
                 _barrier.SignalAndWait();
                 // Critical section (counter + write paired atomically)
                 for (int w = 0; w < _writesPerTask; w++)
@@ -86,7 +72,6 @@ namespace ThreadDemo
                     {
                         int lineNo = ++_lineCounter;
                         sharedWriter.WriteLine($"{lineNo}, {threadId}, {DateTime.UtcNow.ToString("HH:mm:ss.fff")}");
-
                     }
                 }
             }
@@ -94,31 +79,27 @@ namespace ThreadDemo
             {
                 Console.Error.WriteLine($"Exception Occured at line No: {_lineCounter} on Thread {threadId}: {ex.Message}");
             }
-
         }
-
         public static void Initializefile()
         {
             using var fs = new FileStream(GetWritePath(), FileMode.Create, FileAccess.Write, FileShare.Read);
             using var initwriter = new StreamWriter(fs, Encoding.UTF8);
             initwriter.WriteLine($"0, 0, {DateTime.UtcNow.ToString("HH:mm:ss.fff")}");
         }
-
         // Use a user-writable location to avoid UnauthorizedAccessException
-         private static string GetWritePath()
+        private static string GetWritePath()
         {
             string appDir;
             if (OperatingSystem.IsWindows())
             {
-                appDir = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+               appDir = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
             }
             else
             {
-                appDir = "/log/out.txt";
-		        return appDir;
+               appDir = "/log/out.txt";
+               return appDir;
             }
             return Path.Combine(appDir, "out.txt");
         }
-
     }
 }
