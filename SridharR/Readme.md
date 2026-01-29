@@ -124,6 +124,37 @@ This guarantees one‑to‑one pairing of line numbers and writes.
 - `Barrier` disposed in `finally` block
 - `FileStream` and `StreamWriter` disposed via `using`
 ---
+## Running the Application with Docker
+
+You can build and run this console application using the Docker Engine. The following commands assume Docker is installed and running on your system.
+
+### 1. Build the Docker Image
+
+From the root of the project (where the `Dockerfile` is located), run:
+
+```
+sudo docker build -t filewritetask:1.0 .
+```
+
+This command:
+- Uses the local `Dockerfile`
+- Builds the image
+- Tags it as `filewritetask:1.0`
+
+### 2. Run the Container
+
+After the image is built successfully, execute:
+
+```
+sudo docker run --rm -it filewritetask:1.0
+```
+
+Explanation of flags:
+- `--rm` : Automatically removes the container when it exits
+- `-it`  : Runs the container in interactive mode with a terminal attached
+
+The application will execute inside the container, perform concurrent file writes, print summary output, and then terminate.
+
 
 ## Sample Output
 
