@@ -3,25 +3,24 @@ using System;
 
 class Program
 {
-    static void Main(string[] args)
+    static int Main(string[] args)
     {
         string filePath = "/log/out.txt";
 
         try
         {
-            // Initialize the file handler
             var fileHandler = new FileHandler(filePath);
-
-            // Start the threads
             var threadManager = new ThreadManager(fileHandler);
             threadManager.StartThreads();
 
             Console.WriteLine("All threads have completed. Press any key to exit...");
             Console.ReadKey();
+            return 0; // success
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Unhandled exception: {ex.Message}");
+            Console.Error.WriteLine($"Unhandled exception: {ex.ToString()}");
+            return 1; // failure
         }
     }
 }

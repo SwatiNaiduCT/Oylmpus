@@ -11,17 +11,37 @@ namespace MultithreadedFileWriter
 
         public ThreadManager(FileHandler fileHandler)
         {
-            _fileHandler = fileHandler;
+            _fileHandler = fileHandler ?? throw new ArgumentNullException(nameof(fileHandler));
         }
 
+        /// <summary>
+        /// Starts 10 threads, waits for them to finish and propagates any thread exceptions
+        /// as an AggregateException back to the caller.
+        /// </summary>
         public void StartThreads()
         {
-            Thread[] threads = new Thread[10];
+            const int threadCount = 10;
+            Thread[] threads = new Thread[threadCount];
+            Exception[] threadExceptions = new Exception[threadCount];
 
-            for (int i = 0; i < 10; i++)
+            for (int i = 0; i < threadCount; i++)
             {
-                int threadId = i + 1; // Assign a unique ID to each thread
-                threads[i] = new Thread(() => WriteToFile(threadId));
+                int idx = i;                 // capture loop variable
+                int threadId = i + 1;        // human-friendly thread id
+
+                threads[i] = new Thread(() =>
+                {
+                    try
+                    {
+                        WriteToFile(threadId);
+                    }
+                    catch (Exception ex)
+                    {
+                        // Capture the exception for later propagation
+                        threadExceptions[idx] = ex;
+                    }
+                });
+
                 threads[i].Start();
             }
 
@@ -30,28 +50,38 @@ namespace MultithreadedFileWriter
             {
                 thread.Join();
             }
+
+            // After all threads have completed, propagate any exceptions
+            var exceptionsToThrow = new System.Collections.Generic.List<Exception>();
+            for (int i = 0; i < threadExceptions.Length; i++)
+            {
+                if (threadExceptions[i] != null)
+                    exceptionsToThrow.Add(threadExceptions[i]);
+            }
+
+            if (exceptionsToThrow.Count > 0)
+            {
+                throw new AggregateException("One or more threads failed.", exceptionsToThrow);
+            }
         }
 
+        /// <summary>
+        /// Performs the file writes. Any exceptions are allowed to bubble up to the caller
+        /// (StartThreads captures them and rethrows after all threads join).
+        /// </summary>
         private void WriteToFile(int threadId)
         {
-            try
+            // Each thread writes exactly 10 lines
+            for (int i = 0; i < 10; i++)
             {
-                // Each thread writes exactly 10 lines
-                for (int i = 0; i < 10; i++)
-                {
-                    int currentLine;
+                int currentLine;
 
-                    // Synchronize access to the shared resource
-                    lock (_lock)
-                    {
-                        currentLine = ++_lineCount; // Increment line count safely
-                        _fileHandler.WriteToFile(currentLine, threadId); // Write to file
-                    }
+                // Synchronize access to the shared resource
+                lock (_lock)
+                {
+                    currentLine = ++_lineCount; // Increment line count safely
+                    _fileHandler.WriteToFile(currentLine, threadId); // Write to file
                 }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error in thread {threadId}: {ex.Message}");
             }
         }
     }
