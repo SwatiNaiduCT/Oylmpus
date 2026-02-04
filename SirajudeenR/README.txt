@@ -43,8 +43,7 @@ Example:
 APPLICATION Files
 
 Program.cs                  - Main app logic (creates 10 threads)
-FileHandler/
-  FileAccessHandler.cs      - Handles file writing safely
+FileAccessHandler.cs      - Handles file writing safely
 Dockerfile                  - Docker container setup
 docker-compose.yml          - Docker automation (optional)
 README.md                   - Detailed documentation
@@ -114,3 +113,4 @@ docker stop <container-id>
 
 
 ================================================================================
+
