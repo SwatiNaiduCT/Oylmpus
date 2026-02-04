@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "dgSpecHash": "RkEGiTzQS2I=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\ReshmiG\\source\\repos\\MultiThreadedFileWriter\\MultiThreadedFileWriter.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\ReshmiG\\.nuget\\packages\\microsoft.visualstudio.azure.containers.tools.targets\\1.22.1\\microsoft.visualstudio.azure.containers.tools.targets.1.22.1.nupkg.sha512"
+  ],
+  "logs": []
+}

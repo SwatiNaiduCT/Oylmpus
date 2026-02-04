@@ -1,0 +1,14 @@
+C:\Users\ReshmiG\source\repos\MultiThreadedFileWriter\bin\Debug\net6.0\MultiThreadedFileWriter.exe
+C:\Users\ReshmiG\source\repos\MultiThreadedFileWriter\bin\Debug\net6.0\MultiThreadedFileWriter.deps.json
+C:\Users\ReshmiG\source\repos\MultiThreadedFileWriter\bin\Debug\net6.0\MultiThreadedFileWriter.runtimeconfig.json
+C:\Users\ReshmiG\source\repos\MultiThreadedFileWriter\bin\Debug\net6.0\MultiThreadedFileWriter.dll
+C:\Users\ReshmiG\source\repos\MultiThreadedFileWriter\bin\Debug\net6.0\MultiThreadedFileWriter.pdb
+C:\Users\ReshmiG\source\repos\MultiThreadedFileWriter\obj\Debug\net6.0\MultiThreadedFileWriter.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\ReshmiG\source\repos\MultiThreadedFileWriter\obj\Debug\net6.0\MultiThreadedFileWriter.AssemblyInfoInputs.cache
+C:\Users\ReshmiG\source\repos\MultiThreadedFileWriter\obj\Debug\net6.0\MultiThreadedFileWriter.AssemblyInfo.cs
+C:\Users\ReshmiG\source\repos\MultiThreadedFileWriter\obj\Debug\net6.0\MultiThreadedFileWriter.csproj.CoreCompileInputs.cache
+C:\Users\ReshmiG\source\repos\MultiThreadedFileWriter\obj\Debug\net6.0\MultiThreadedFileWriter.dll
+C:\Users\ReshmiG\source\repos\MultiThreadedFileWriter\obj\Debug\net6.0\refint\MultiThreadedFileWriter.dll
+C:\Users\ReshmiG\source\repos\MultiThreadedFileWriter\obj\Debug\net6.0\MultiThreadedFileWriter.pdb
+C:\Users\ReshmiG\source\repos\MultiThreadedFileWriter\obj\Debug\net6.0\MultiThreadedFileWriter.genruntimeconfig.cache
+C:\Users\ReshmiG\source\repos\MultiThreadedFileWriter\obj\Debug\net6.0\ref\MultiThreadedFileWriter.dll

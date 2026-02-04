@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "MultiThreadedFileWriter": {
+      "commandName": "Project"
+    },
+    "Container (Dockerfile)": {
+      "commandName": "Docker"
+    }
+  }
+}
