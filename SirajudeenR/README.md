@@ -4,7 +4,7 @@ A .NET 10 console application that creates **10 threads writing to 1 file safely
 
 ---
 
-## ?? What Does This App Do?
+## ?? About the Application
 
 - Creates multiple threads that run concurrently
 - All threads write to a single shared file
@@ -30,12 +30,43 @@ A .NET 10 console application that creates **10 threads writing to 1 file safely
 
 | File | Purpose |
 |------|---------|
-| **Program.cs** | Main app logic (creates 10 threads) |
-| **FileHandler/FileAccessHandler.cs** | Handles file writing safely |
-| **appsettings.json** | Configuration settings |
-| **AppSettings.cs** | Settings class for strong typing |
+| **Program.cs** | Entry point - starts application (7 lines only!) |
+| **FileAccessorApplication.cs** | Orchestrates everything - configuration, DI, threads |
+| **FileAccessHandler.cs** | Thread-safe file writing with locks |
+| **appsettings.json** | Configuration (threads, paths, delays) |
+| **AppSettings.cs** | Settings class with strong typing |
 | **Dockerfile** | Docker container setup |
-| **docker-compose.yml** | Docker automation (optional) |
+
+### How Files Work Together
+
+**Program.cs** (Entry Point - Super Simple!)
+```csharp
+using (var application = new FileAccessorApplication())
+{
+    application.Run();
+}
+```
+
+
+**FileAccessorApplication.cs** (The Brain - Does All The Work)
+- Loads settings from `appsettings.json`
+- Creates dependency injection container
+- Initializes file system
+- Creates and manages threads
+- Displays results
+- Handles errors gracefully
+
+**FileAccessHandler.cs** (The Safeguard)
+- Uses `lock` for thread-safe writes
+- Writes entries with timestamps
+- Tracks total number of writes
+
+**appsettings.json** (The Configuration)
+- How many threads to create
+- How many times each thread writes
+- Where to save the output file
+- Timestamp format for logging
+- Delay between writes (for demonstration)
 
 ---
 
@@ -81,10 +112,10 @@ docker volume inspect file-logs
 **Run with Local Folder:**
 ```bash
 # Windows
-docker run -v C:\MyLogs:/log file-accessor:latest
+docker run -i -v C:\MyLogs:/log file-accessor:latest
 
 # Linux/Mac
-docker run -v /home/user/logs:/log file-accessor:latest
+docker run -i -v /home/user/logs:/log file-accessor:latest
 ```
 
 ---
@@ -109,7 +140,7 @@ WriteNumber, ThreadId, Timestamp
 
 ## ?? Configuration
 
-All settings are in `appsettings.json`. **No code changes needed!**
+All settings are in `appsettings.json`. 
 
 ```json
 {
@@ -136,11 +167,6 @@ All settings are in `appsettings.json`. **No code changes needed!**
 "FilePath": "C:\\MyLogs\\output.txt"
 ```
 
-**Faster execution (no delay):**
-```json
-"ThreadDelayMilliseconds": 0
-```
-
 **Detailed timestamps:**
 ```json
 "DatetimeFormat": "yyyy-MM-dd HH:mm:ss.fff"
@@ -153,17 +179,9 @@ All settings are in `appsettings.json`. **No code changes needed!**
 
 ---
 
-## ?? How Thread Synchronization Works
 
-### The Problem
-```
-Thread 1: Wants to write
-Thread 2: Wants to write
-?
-Both try at same time ? FILE CORRUPTION! ?
-```
 
-### Our Solution
+###  Solution details
 ```csharp
 lock (sharedResource)  // Only ONE thread can enter at a time
 {
@@ -176,7 +194,83 @@ Each thread acquires the lock, writes its data, then releases it. This ensures c
 
 ---
 
-## ?? Useful Commands
+## ??? Architecture & Design
+
+### Clean Separation of Concerns
+
+**Program.cs** 
+```csharp
+using (var application = new FileAccessorApplication())
+{
+    application.Run();
+}
+```
+ Just instantiate and run.
+
+**FileAccessorApplication.cs** (Orchestrator - 200+ lines)
+- Manages application lifecycle
+- Loads configuration from appsettings.json
+- Sets up dependency injection
+- Creates and coordinates threads
+- Handles errors gracefully
+- Cleans up resources with IDisposable
+
+**FileAccessHandler.cs** (File Operations)
+- Encapsulates all file I/O
+- Uses `lock` for thread synchronization
+- Counts and validates writes
+
+### Flow Diagram
+
+```
+Program.Main()
+  ?? new FileAccessorApplication()
+       ?? Load appsettings.json
+       ?? Create Dependency Injection
+       ?? Register AppSettings & FileAccessHandler
+       ?
+       ?? Run()
+            ?? InitializeFileSystem()
+            ?   ?? Create/validate log file
+            ?
+            ?? RunThreads()
+            ?   ?? Create 10 Thread objects
+            ?   ?? Start each thread
+            ?   ?? Each thread: WriteToFile(threadId)
+            ?   ?   ?? For each write:
+            ?   ?      ?? Lock ? Write ? Release
+            ?   ?? Wait for all with Join()
+            ?
+            ?? DisplayCompletionInfo()
+                ?? Show results & file path
+```
+
+### Why This Design?
+
+? **Testable** - FileAccessorApplication can be unit tested  
+? **Maintainable** - Logic in clear, organized methods  
+? **Reusable** - Can use from any entry point  
+? **Clean** - Program.cs is only 7 lines!  
+? **Flexible** - Easy to add features or modify behavior  
+
+---
+
+## ?? Thread Synchronization Details
+
+### FileAccessHandler Class
+Encapsulates all file operations:
+- `Initialize()` - Sets up file and directory
+- `WriteEntry(threadId, count)` - Thread-safe write with lock
+- `ValidateFile()` - Checks file accessibility
+- `GetWriteCounter()` - Returns total writes
+- `Dispose()` - Cleanup and resource management
+
+### Exception Handling Layers
+1. **Application Level** (Run method) - Catches main errors
+2. **Thread Level** (WriteToFile method) - Catches thread-specific errors
+3. **Handler Level** (FileAccessHandler class) - Handles I/O errors
+
+---
 
 ```bash
 # Check .NET version
@@ -255,6 +349,4 @@ Encapsulates all file operations:
 
 ---
 
-## ?? License
 
-Educational project demonstrating .NET 10 concurrent file access patterns.
