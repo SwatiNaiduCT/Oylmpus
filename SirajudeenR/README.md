@@ -31,7 +31,7 @@ A .NET 10 console application that creates **10 threads writing to 1 file safely
 | File | Purpose |
 |------|---------|
 | **Program.cs** | Main app logic (creates 10 threads) |
-| **FileAccessHandler.cs** | Handles file writing safely |
+| **FileHandler/FileAccessHandler.cs** | Handles file writing safely |
 | **appsettings.json** | Configuration settings |
 | **AppSettings.cs** | Settings class for strong typing |
 | **Dockerfile** | Docker container setup |
@@ -258,4 +258,3 @@ Encapsulates all file operations:
 ## ?? License
 
 Educational project demonstrating .NET 10 concurrent file access patterns.
-
