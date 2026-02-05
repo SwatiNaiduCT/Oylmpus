@@ -17,7 +17,10 @@ namespace MultiThreadedFileWriter.Infrastructure
         {
             _filePath = filePath ?? throw new ArgumentNullException(nameof(filePath));
 
-            var dir = Path.GetDirectoryName(_filePath) ?? (OperatingSystem.IsWindows() ? "C:\\log" : "/log");
+            var dir = Path.GetDirectoryName(_filePath);
+            if (string.IsNullOrWhiteSpace(dir))
+                throw new ArgumentException("filePath must include a directory component", nameof(filePath));
+
             Directory.CreateDirectory(dir);
         }
 
