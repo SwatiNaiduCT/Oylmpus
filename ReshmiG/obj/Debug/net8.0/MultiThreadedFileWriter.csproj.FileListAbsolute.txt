@@ -12,3 +12,4 @@ C:\Users\ReshmiG\source\repos\MultiThreadedFileWriter\obj\Debug\net8.0\refint\Mu
 C:\Users\ReshmiG\source\repos\MultiThreadedFileWriter\obj\Debug\net8.0\MultiThreadedFileWriter.pdb
 C:\Users\ReshmiG\source\repos\MultiThreadedFileWriter\obj\Debug\net8.0\MultiThreadedFileWriter.genruntimeconfig.cache
 C:\Users\ReshmiG\source\repos\MultiThreadedFileWriter\obj\Debug\net8.0\ref\MultiThreadedFileWriter.dll
+C:\Users\ReshmiG\source\repos\MultiThreadedFileWriter\bin\Debug\net8.0\appsettings.json
