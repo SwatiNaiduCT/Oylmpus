@@ -7,6 +7,17 @@ using System.Threading;
 
 namespace ThreadSafeLogger
 {
+
+    public interface ITimeProvider
+    {
+        DateTime UtcNow { get; }
+    }
+
+    public sealed class SystemTimeProvider : ITimeProvider
+    {
+        public DateTime UtcNow => DateTime.UtcNow;
+    }
+
     /// <summary>
     /// Represents a thread-safe log file that guarantees:
     /// - Strictly increasing line numbers across threads
@@ -18,13 +29,14 @@ namespace ThreadSafeLogger
         private readonly StreamWriter _writer;
         private readonly object _ioLock = new object();
         private int _lineCounter;
+        private readonly ITimeProvider _timeprovider;
 
         public string FilePath { get; }
 
-        public LogFile(string filePath)
+        public LogFile(string filePath, ITimeProvider timeProvider)
         {
             FilePath = filePath ?? throw new ArgumentNullException(nameof(filePath));
-
+            _timeprovider= timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));
             var dir = Path.GetDirectoryName(filePath);
             if (string.IsNullOrWhiteSpace(dir))
                 throw new ArgumentException("Invalid file path: directory is missing.", nameof(filePath));
@@ -38,7 +50,7 @@ namespace ThreadSafeLogger
 
             // Initialize header line: 0, 0, <timestamp>
             _lineCounter = 0;
-            WriteRaw(0, 0, DateTime.Now);
+            WriteRaw(0, 0, _timeprovider);
         }
 
         /// <summary>
@@ -46,18 +58,29 @@ namespace ThreadSafeLogger
         /// </summary>
         public void AppendLineForCurrentThread()
         {
-            int next = Interlocked.Increment(ref _lineCounter);
-            DateTime now = DateTime.Now;
-            int threadId = Environment.CurrentManagedThreadId;
-            WriteRaw(next, threadId, now);
+            //int next = Interlocked.Increment(ref _lineCounter);
+            //DateTime now = DateTime.Now;
+            //int threadId = Environment.CurrentManagedThreadId;
+            //WriteRaw(next, threadId, now);
+
+            lock (_ioLock)
+            {
+                int next = ++_lineCounter; // increment INSIDE the same lock
+                string now = _timeprovider.UtcNow.ToString("HH: mm:ss.fff", CultureInfo.InvariantCulture);
+                int threadId = Environment.CurrentManagedThreadId;
+
+                string line = $"{next}, {threadId}, {now:HH:mm:ss.fff}";
+                _writer.WriteLine(line); // write under the same lock
+            }
+
         }
 
         /// <summary>
         /// Low-level, synchronized write ensuring entire line is written atomically.
         /// </summary>
-        private void WriteRaw(int lineCount, int threadId, DateTime timestamp)
+        private void WriteRaw(int lineCount, int threadId, ITimeProvider timestamp)
         {
-            string line = $"{lineCount}, {threadId}, {timestamp.ToString("HH:mm:ss.fff", CultureInfo.InvariantCulture)}";
+            string line = $"{lineCount}, {threadId}, {timestamp.UtcNow.ToString("HH:mm:ss.fff", CultureInfo.InvariantCulture)}";
             lock (_ioLock)
             {
                 _writer.WriteLine(line);
@@ -149,7 +172,8 @@ namespace ThreadSafeLogger
 
             try
             {
-                using var logFile = new LogFile(filePath);
+                ITimeProvider timeProvider = new SystemTimeProvider();
+                using var logFile = new LogFile(filePath, timeProvider);
 
                 Console.WriteLine($"Writing to: {logFile.FilePath}");
                 Console.WriteLine($"Threads: {ThreadCount}, Writes per thread: {WritesPerThread}");
